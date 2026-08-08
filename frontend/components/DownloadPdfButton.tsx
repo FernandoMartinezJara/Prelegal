@@ -20,6 +20,8 @@ export function DownloadPdfButton({ data }: { data: NdaFormData }) {
       link.download = "mutual-nda.pdf";
       link.click();
       URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to generate NDA PDF:", error);
     } finally {
       setIsGenerating(false);
     }

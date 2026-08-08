@@ -1,7 +1,10 @@
 import type { PartyDetails } from "@/lib/nda-data";
 
+// Colors are pinned explicitly (rather than inherited) so typed text stays
+// readable regardless of the user's OS light/dark color-scheme preference —
+// the app doesn't otherwise support a dark theme.
 const inputClasses =
-  "w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500";
+  "w-full rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:bg-zinc-100 disabled:text-zinc-400";
 const labelClasses = "block text-xs font-medium text-zinc-600 mb-1";
 
 interface PartyFieldsetProps {

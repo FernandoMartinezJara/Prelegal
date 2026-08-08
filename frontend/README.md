@@ -13,6 +13,20 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Testing
+
+```bash
+npm run test           # run once
+npm run test:watch     # watch mode
+npm run test:coverage  # run with a coverage report (enforces an 80% minimum)
+```
+
+Tests use [Vitest](https://vitest.dev/) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/).
+`lib/nda-pdf.test.ts` runs in Vitest's `node` environment and asserts on the
+actual generated PDF bytes (decoding its compressed text content) rather than
+mocking `@react-pdf/renderer`, since its `Document`/`Page`/`Text` primitives
+aren't DOM elements RTL can render.
+
 ## How it works
 
 - `lib/nda-template.ts` — the 11 Mutual NDA clauses, transcribed from

@@ -22,14 +22,16 @@ export function TermChoiceField({
     <fieldset>
       <legend className={labelClasses}>{legend}</legend>
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm text-zinc-700">
-          <input
-            type="radio"
-            name={name}
-            checked={value.type === "fixed"}
-            onChange={() => onChange({ ...value, type: "fixed" })}
-          />
-          <span>{fixedLabel}</span>
+        <div className="flex items-center gap-2 text-sm text-zinc-700">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name={name}
+              checked={value.type === "fixed"}
+              onChange={() => onChange({ ...value, type: "fixed" })}
+            />
+            <span>{fixedLabel}</span>
+          </label>
           <input
             type="number"
             min={1}
@@ -40,7 +42,7 @@ export function TermChoiceField({
             onChange={(e) => onChange({ ...value, years: Number(e.target.value) || 1 })}
           />
           <span>year(s) from Effective Date</span>
-        </label>
+        </div>
         <label className="flex items-center gap-2 text-sm text-zinc-700">
           <input
             type="radio"
