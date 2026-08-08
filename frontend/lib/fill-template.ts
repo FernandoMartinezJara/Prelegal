@@ -11,13 +11,13 @@ export interface FilledClause {
   segments: RichSegment[];
 }
 
-function describeMndaTerm(type: TermChoice, years: number): string {
+export function describeMndaTerm(type: TermChoice, years: number): string {
   return type === "fixed"
     ? `${years} year(s) from the Effective Date`
     : `the date this MNDA is terminated in accordance with its terms`;
 }
 
-function describeConfidentialityTerm(type: TermChoice, years: number): string {
+export function describeConfidentialityTerm(type: TermChoice, years: number): string {
   return type === "fixed"
     ? `${years} year(s) from the Effective Date, but in the case of trade secrets until the Confidential Information is no longer considered a trade secret under applicable law`
     : `in perpetuity`;

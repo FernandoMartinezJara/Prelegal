@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createDefaultNdaFormData } from "@/lib/nda-data";
-import { NdaForm } from "@/components/NdaForm";
+import { ChatPanel } from "@/components/ChatPanel";
 import { NdaPreview } from "@/components/NdaPreview";
 import { DownloadPdfButton } from "@/components/DownloadPdfButton";
 
@@ -15,7 +15,7 @@ export default function Home() {
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">Mutual NDA Creator</h1>
           <p className="text-sm text-zinc-500">
-            Fill in the details below and download a completed Mutual Non-Disclosure Agreement.
+            Chat with the assistant about your Mutual NDA, then review and download it below.
           </p>
         </div>
         <DownloadPdfButton data={data} />
@@ -23,10 +23,10 @@ export default function Home() {
 
       <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-lg border border-zinc-200 bg-white p-4">
-          <NdaForm data={data} onChange={setData} />
+          <ChatPanel ndaData={data} onNdaDataChange={setData} />
         </div>
         <div className="lg:sticky lg:top-8 lg:self-start">
-          <NdaPreview data={data} />
+          <NdaPreview data={data} onChange={setData} />
         </div>
       </main>
     </div>
