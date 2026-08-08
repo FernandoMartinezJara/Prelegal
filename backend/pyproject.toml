@@ -5,5 +5,16 @@ description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.141.1",
+    # Pinned: newer litellm sdists (1.9x+) fail to build on some dev machines
+    # (a bundled Rust component needs a Cargo edition this host's toolchain
+    # doesn't support). 1.55.0 ships a working wheel. Bump when that's fixed.
+    "litellm==1.55.0",
+    "pydantic>=2.13.4",
     "uvicorn[standard]>=0.52.1",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27.2",
+    "pytest>=9.1.1",
 ]
