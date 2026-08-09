@@ -1,3 +1,5 @@
+import type { UiStrings } from "./ui-strings";
+
 export type FieldKind = "text" | "multiline" | "date" | "term";
 
 export interface FieldSchema {
@@ -22,4 +24,7 @@ export interface DocumentTypeDetail extends DocumentTypeSummary {
   partyRoles: string[];
   fields: FieldSchema[];
   clauses: ClauseSchema[];
+  language: string;
+  uiStrings: UiStrings;
+  translationDisclaimer: string | null;
 }

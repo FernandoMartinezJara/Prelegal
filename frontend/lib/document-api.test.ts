@@ -40,8 +40,18 @@ describe("fetchDocumentSchema", () => {
 
     const result = await fetchDocumentSchema("pilot-agreement");
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/documents/pilot-agreement");
+    expect(fetchMock).toHaveBeenCalledWith("/api/documents/pilot-agreement?lang=en");
     expect(result).toEqual(schema);
+  });
+
+  it("includes the requested language in the query string", async () => {
+    const schema = { slug: "pilot-agreement" };
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(schema) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchDocumentSchema("pilot-agreement", "es");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/documents/pilot-agreement?lang=es");
   });
 
   it("throws DocumentApiError on a 404", async () => {

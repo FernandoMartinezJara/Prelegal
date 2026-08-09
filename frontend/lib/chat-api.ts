@@ -9,6 +9,7 @@ export interface ChatTurnResult {
   reply: string;
   documentType: string | null;
   fieldData: FieldData;
+  language: string;
 }
 
 export class ChatApiError extends Error {}

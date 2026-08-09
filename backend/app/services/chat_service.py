@@ -29,7 +29,11 @@ Figure out which document type (by its slug) best matches what the user describe
 these genuinely fit what they're asking for, leave document_type unset and use `reply` to \
 explain what we can't generate, and suggest the closest catalog document type by name instead. \
 If a document type is a good match, confirm it conversationally in `reply` and set \
-document_type to its slug."""
+document_type to its slug.
+
+Detect the language the user is writing in from their latest message, write `reply` in that \
+same language, and set `language` to its ISO 639-1 code (e.g. "en", "es", "fr", "pt"). Default \
+to "en" if you genuinely can't tell."""
 
 
 class LlmCallError(RuntimeError):
@@ -52,6 +56,7 @@ def _classification_model() -> type[CamelModel]:
         __base__=CamelModel,
         reply=(str, ...),
         document_type=(Literal[slugs] | None, None),
+        language=(str, "en"),
     )
 
 
@@ -64,6 +69,7 @@ def _turn_response_model(slug: str) -> type[CamelModel]:
         reply=(str, ...),
         document_type=(Literal[_all_slugs()], slug),
         field_data=(spec.fields_model, Field(default_factory=spec.fields_model)),
+        language=(str, "en"),
     )
 
 
@@ -100,7 +106,11 @@ document_type to that other document's slug instead of this one and say so in yo
 otherwise keep document_type set to "{spec.slug}".
 
 Once every required field is filled in, congratulate the user and let them know they can \
-review the preview and download the PDF."""
+review the preview and download the PDF.
+
+Detect the language the user is writing in from their latest message, write `reply` in that \
+same language, and set `language` to its ISO 639-1 code (e.g. "en", "es", "fr", "pt"). Default \
+to "en" if you genuinely can't tell."""
 
 
 def _call_llm(system_prompt: str, history: list[ChatMessage], response_model: type[CamelModel]):
@@ -154,13 +164,15 @@ def _resolve_and_fill(
         # the same turn rather than wasting a round trip, bounded so two
         # types can't ping-pong forever.
         if depth >= MAX_TYPE_RESOLUTION_DEPTH:
-            return ChatTurnResult(reply=result.reply, document_type=None, field_data={})
+            return ChatTurnResult(reply=result.reply, document_type=None, field_data={}, language=result.language)
         return _resolve_and_fill(history, result.document_type, {}, depth + 1)
 
     missing = missing_required_fields(spec, result.field_data)
     reply = ensure_followup_question(result.reply, missing)
     field_values = result.field_data.model_dump()
-    return ChatTurnResult(reply=reply, document_type=spec.slug, field_data=field_values)
+    return ChatTurnResult(
+        reply=reply, document_type=spec.slug, field_data=field_values, language=result.language
+    )
 
 
 def generate_chat_turn(
@@ -169,7 +181,12 @@ def generate_chat_turn(
     if document_type is None:
         classification = _classify(history)
         if classification.document_type is None:
-            return ChatTurnResult(reply=classification.reply, document_type=None, field_data={})
+            return ChatTurnResult(
+                reply=classification.reply,
+                document_type=None,
+                field_data={},
+                language=classification.language,
+            )
         return _resolve_and_fill(history, classification.document_type, {}, depth=1)
 
     return _resolve_and_fill(history, document_type, field_data, depth=1)

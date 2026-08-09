@@ -137,6 +137,44 @@ def test_deterministic_followup_question_is_appended_when_model_forgets():
     assert result.reply.endswith("?")
 
 
+def test_language_detected_during_classification_is_propagated():
+    classify_model = _classification_model()
+    turn_model = _turn_response_model("pilot-agreement")
+    spec = get_document_type("pilot-agreement")
+
+    classification = classify_model(
+        reply="Suena a un Contrato Piloto.", document_type="pilot-agreement", language="es"
+    )
+    turn = turn_model(
+        reply="Genial, ¿cuál es el período piloto?",
+        document_type="pilot-agreement",
+        field_data=spec.fields_model(),
+        language="es",
+    )
+
+    with patch(
+        "app.services.chat_service.completion",
+        side_effect=completion_router({classify_model: classification, turn_model: turn}),
+    ):
+        result = generate_chat_turn(HISTORY, None, {})
+
+    assert result.language == "es"
+
+
+def test_language_defaults_to_english_when_unspecified():
+    turn_model = _turn_response_model("mutual-nda")
+    spec = get_document_type("mutual-nda")
+    turn = turn_model(reply="Got it.", document_type="mutual-nda", field_data=spec.fields_model())
+
+    with patch(
+        "app.services.chat_service.completion",
+        side_effect=completion_router({turn_model: turn}),
+    ):
+        result = generate_chat_turn(HISTORY, "mutual-nda", {})
+
+    assert result.language == "en"
+
+
 def test_unknown_document_type_raises_llm_call_error():
     with pytest.raises(LlmCallError):
         generate_chat_turn(HISTORY, "not-a-real-document", {})

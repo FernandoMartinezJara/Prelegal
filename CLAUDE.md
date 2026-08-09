@@ -134,14 +134,56 @@ Backend available at http://localhost:8000
 - The Dockerfile now copies `templates/` and `catalog.json` into the image (`backend/app/config.py`
   resolves their path in both local dev and the flattened Docker `/app` layout) - previously
   neither was copied in, so `/api/documents*` would have 500'd in production
+- `TermLength.years` (`backend/app/models/common.py`, mirrored in `frontend/lib/field-data.ts`)
+  defaults to `0`, not `1` - `0` is a deliberate "not yet specified" sentinel for a `"fixed"` term,
+  since a real Pydantic/TS default object is never falsy/empty and would otherwise make a required
+  term field impossible to flag as missing (an `"open-ended"` term is always considered answered
+  regardless of `years`). `describeTerm`/clause rendering show `"[Term not yet specified]"` for
+  `{type: "fixed", years: 0}` rather than the nonsensical "0 year(s)"
+- A markdown-parsing regex in `clause_builder.py` only stripped single-letter nested-list markers
+  (`a.`, `b.`, ...); multi-letter roman numerals (`ii.`, `iii.`, `iv.`, `vi.`, `vii.` - present in
+  the DPA template's nested clauses) leaked into generated clause text until fixed - a reminder
+  that `backend/tests/test_document_registry.py`'s golden-file test only catches drift from the
+  *current* parsing logic, not bugs baked into that logic from the start
 
-### Not yet started (PL-7)
-Full user authentication/persistence described in earlier drafts of this file has **not** been
-built yet. It remains planned follow-on work, not a completed feature.
+### Completed (PL-7)
+PL-7's Jira title ("Support multiple users & final polish") doesn't match its actual description,
+which is UI polish + i18n, not auth/persistence - full user authentication/persistence described
+in earlier drafts of this file is **still not built**; that scope hasn't actually been requested
+under any ticket yet. What PL-7 actually shipped:
+- Favicon (`frontend/app/icon.svg`, Next.js App Router's file convention) and a matching
+  `LegalIcon` component (scales-of-justice motif in brand colors) shown next to the app title
+- A `Spinner` component used both in the chat ("Assistant is thinking...") and in the preview
+  panel while a document schema is loading/translating (previously that second moment had no
+  visual feedback at all)
+- Language detection + translation: every chat turn's structured-output schema gained a
+  `language` field (ISO 639-1 code) - the system prompt tells the model to detect the user's
+  language and reply in it; `ChatTurnResult.language` carries it to the frontend.
+  `GET /api/documents/{slug}?lang=xx` translates the document's name/description/party
+  roles/field labels/clause text (`{{token}}` placeholders explicitly preserved) and a fixed set
+  of app UI strings (`backend/app/models/ui_strings.py` / `frontend/lib/ui-strings.ts`) via one
+  LLM call (`backend/app/services/translation.py`), cached in memory per `(slug, lang)`. A
+  `translationDisclaimer` (in the target language) is shown on-screen and in the exported PDF,
+  since this is a real, accepted risk: an LLM-translated legal document is not a substitute for
+  professional translation, and the English original stays the legally authoritative version
+- `frontend/app/page.tsx` tracks the detected `language` across turns and re-fetches the current
+  document's schema if the user switches languages mid-conversation, not just on first resolution.
+  `ChatPanel.tsx` only fires the language-triggered re-fetch when the document type *didn't also*
+  change that turn - otherwise it would race an independent, stale-document-type schema fetch
+  against the type-change schema fetch and could overwrite the correct one with the abandoned one
+- `to_detail()` (`backend/app/models/document_type.py`) merges translated fields/clauses back onto
+  the English original **by key/number, not by position** - if a translation call ever omits or
+  reorders an item, that item falls back to English instead of misaligning silently. `party_roles`
+  has no key to merge by (it's a plain ordered list), so a count mismatch falls back to the entire
+  English list rather than partially merging
+
+### Not yet started
+Full user authentication/persistence remains unbuilt and unscheduled under any ticket so far.
 
 ### Current API Endpoints
 - `GET /api/health` - Health check (all other routes serve the static frontend)
 - `GET /api/documents` - Catalog of all 11 document types (`slug`, `name`, `description`)
-- `GET /api/documents/{slug}` - One document type's field schema, party roles, and derived clauses
+- `GET /api/documents/{slug}?lang=xx` - One document type's field schema, party roles, derived
+  clauses, and UI strings; translated into `lang` (ISO 639-1, default `en`) if given
 - `POST /api/chat` - One turn of the chat; body `{ messages, documentType, fieldData }` (`documentType`
-  may be `null` before a type is resolved), returns `{ reply, documentType, fieldData }`
+  may be `null` before a type is resolved), returns `{ reply, documentType, fieldData, language }`

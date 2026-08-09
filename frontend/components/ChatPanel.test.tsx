@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { ChatPanel } from "./ChatPanel";
 import { sendChatMessage } from "@/lib/chat-api";
 import type { FieldData } from "@/lib/field-data";
+import { DEFAULT_UI_STRINGS } from "@/lib/ui-strings";
 
 vi.mock("@/lib/chat-api", () => ({
   sendChatMessage: vi.fn(),
@@ -21,8 +22,10 @@ describe("ChatPanel", () => {
       <ChatPanel
         documentType={null}
         fieldData={{}}
+        uiStrings={DEFAULT_UI_STRINGS}
         onDocumentTypeChange={vi.fn()}
         onFieldDataChange={vi.fn()}
+        onLanguageChange={vi.fn()}
       />
     );
     expect(screen.getByText(/What kind of legal document/)).toBeInTheDocument();
@@ -33,16 +36,20 @@ describe("ChatPanel", () => {
       reply: "Got it!",
       documentType: "mutual-nda",
       fieldData: { ...FIELD_DATA, purpose: "Evaluating a partnership" },
+      language: "en",
     });
     const onFieldDataChange = vi.fn();
     const onDocumentTypeChange = vi.fn();
+    const onLanguageChange = vi.fn();
 
     render(
       <ChatPanel
         documentType="mutual-nda"
         fieldData={FIELD_DATA}
+        uiStrings={DEFAULT_UI_STRINGS}
         onDocumentTypeChange={onDocumentTypeChange}
         onFieldDataChange={onFieldDataChange}
+        onLanguageChange={onLanguageChange}
       />
     );
     await userEvent.type(screen.getByLabelText("Message"), "It's for a partnership");
@@ -51,6 +58,7 @@ describe("ChatPanel", () => {
     expect(await screen.findByText("Got it!")).toBeInTheDocument();
     expect(screen.getByText("It's for a partnership")).toBeInTheDocument();
     expect(onDocumentTypeChange).not.toHaveBeenCalled();
+    expect(onLanguageChange).toHaveBeenCalledWith("en");
     expect(onFieldDataChange).toHaveBeenCalledTimes(1);
     const updater = onFieldDataChange.mock.calls[0][0];
     expect(updater(FIELD_DATA)).toEqual({ purpose: "Evaluating a partnership" });
@@ -69,16 +77,20 @@ describe("ChatPanel", () => {
       reply: "Sounds like a Pilot Agreement!",
       documentType: "pilot-agreement",
       fieldData: { effective_date: "" },
+      language: "en",
     });
     const onFieldDataChange = vi.fn();
     const onDocumentTypeChange = vi.fn();
+    const onLanguageChange = vi.fn();
 
     render(
       <ChatPanel
         documentType={null}
         fieldData={{}}
+        uiStrings={DEFAULT_UI_STRINGS}
         onDocumentTypeChange={onDocumentTypeChange}
         onFieldDataChange={onFieldDataChange}
+        onLanguageChange={onLanguageChange}
       />
     );
     await userEvent.type(screen.getByLabelText("Message"), "I want a pilot agreement");
@@ -86,7 +98,37 @@ describe("ChatPanel", () => {
 
     expect(await screen.findByText("Sounds like a Pilot Agreement!")).toBeInTheDocument();
     expect(onFieldDataChange).not.toHaveBeenCalled();
-    expect(onDocumentTypeChange).toHaveBeenCalledWith("pilot-agreement", { effective_date: "" });
+    expect(onDocumentTypeChange).toHaveBeenCalledWith("pilot-agreement", { effective_date: "" }, "en");
+    // onLanguageChange must NOT fire here: onDocumentTypeChange is the sole
+    // schema-loading path when the type changes, so a second, independent
+    // language-triggered fetch (for the stale old type) can't race it.
+    expect(onLanguageChange).not.toHaveBeenCalled();
+  });
+
+  it("reports the detected language on every turn", async () => {
+    vi.mocked(sendChatMessage).mockResolvedValue({
+      reply: "¡Genial!",
+      documentType: "mutual-nda",
+      fieldData: FIELD_DATA,
+      language: "es",
+    });
+    const onLanguageChange = vi.fn();
+
+    render(
+      <ChatPanel
+        documentType="mutual-nda"
+        fieldData={FIELD_DATA}
+        uiStrings={DEFAULT_UI_STRINGS}
+        onDocumentTypeChange={vi.fn()}
+        onFieldDataChange={vi.fn()}
+        onLanguageChange={onLanguageChange}
+      />
+    );
+    await userEvent.type(screen.getByLabelText("Message"), "Necesito un NDA");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await screen.findByText("¡Genial!");
+    expect(onLanguageChange).toHaveBeenCalledWith("es");
   });
 
   it("returns focus to the message box after a turn completes", async () => {
@@ -94,14 +136,17 @@ describe("ChatPanel", () => {
       reply: "Got it!",
       documentType: "mutual-nda",
       fieldData: FIELD_DATA,
+      language: "en",
     });
 
     render(
       <ChatPanel
         documentType="mutual-nda"
         fieldData={FIELD_DATA}
+        uiStrings={DEFAULT_UI_STRINGS}
         onDocumentTypeChange={vi.fn()}
         onFieldDataChange={vi.fn()}
+        onLanguageChange={vi.fn()}
       />
     );
     const textarea = screen.getByLabelText("Message");
@@ -117,14 +162,17 @@ describe("ChatPanel", () => {
       reply: "Got it!",
       documentType: "mutual-nda",
       fieldData: FIELD_DATA,
+      language: "en",
     });
 
     render(
       <ChatPanel
         documentType="mutual-nda"
         fieldData={FIELD_DATA}
+        uiStrings={DEFAULT_UI_STRINGS}
         onDocumentTypeChange={vi.fn()}
         onFieldDataChange={vi.fn()}
+        onLanguageChange={vi.fn()}
       />
     );
     const textarea = screen.getByLabelText("Message");
@@ -150,14 +198,17 @@ describe("ChatPanel", () => {
       reply: "Got it!",
       documentType: "mutual-nda",
       fieldData: FIELD_DATA,
+      language: "en",
     });
 
     render(
       <ChatPanel
         documentType="mutual-nda"
         fieldData={FIELD_DATA}
+        uiStrings={DEFAULT_UI_STRINGS}
         onDocumentTypeChange={vi.fn()}
         onFieldDataChange={vi.fn()}
+        onLanguageChange={vi.fn()}
       />
     );
     await userEvent.type(screen.getByLabelText("Message"), "hello");
