@@ -20,3 +20,4 @@ class ChatTurnResult(CamelModel):
     reply: str
     document_type: str | None = None
     field_data: dict = Field(default_factory=dict)
+    language: str = "en"

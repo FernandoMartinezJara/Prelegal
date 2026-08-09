@@ -4,26 +4,29 @@ import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 
 import type { FieldData } from "@/lib/field-data";
 import { sendChatMessage, type ChatMessage } from "@/lib/chat-api";
 import { mergeAssistantUpdate } from "@/lib/merge-field-data";
-
-const GREETING: ChatMessage = {
-  role: "assistant",
-  content: "Hi! What kind of legal document are you looking to put together today?",
-};
+import type { UiStrings } from "@/lib/ui-strings";
+import { Spinner } from "./Spinner";
 
 interface ChatPanelProps {
   documentType: string | null;
   fieldData: FieldData;
-  onDocumentTypeChange: (slug: string | null, fieldData: FieldData) => void;
+  uiStrings: UiStrings;
+  onDocumentTypeChange: (slug: string | null, fieldData: FieldData, language: string) => void;
   onFieldDataChange: Dispatch<SetStateAction<FieldData>>;
+  onLanguageChange: (language: string) => void;
 }
 
 export function ChatPanel({
   documentType,
   fieldData,
+  uiStrings,
   onDocumentTypeChange,
   onFieldDataChange,
+  onLanguageChange,
 }: ChatPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { role: "assistant", content: uiStrings.chatGreeting },
+  ]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,12 +55,16 @@ export function ChatPanel({
       const result = await sendChatMessage(outgoingMessages, sentDocumentType, sentFieldData);
       setMessages((prev) => [...prev, { role: "assistant", content: result.reply }]);
       if (result.documentType !== sentDocumentType) {
-        onDocumentTypeChange(result.documentType, result.fieldData);
+        // onDocumentTypeChange is the sole schema-loading path here — calling
+        // onLanguageChange too would kick off a second, independent fetch for
+        // the OLD document type that could race and overwrite this one.
+        onDocumentTypeChange(result.documentType, result.fieldData, result.language);
       } else {
+        onLanguageChange(result.language);
         onFieldDataChange((current) => mergeAssistantUpdate(current, sentFieldData, result.fieldData));
       }
     } catch {
-      setError("Something went wrong reaching the assistant. Please try again.");
+      setError(uiStrings.chatError);
       setPendingRetry(outgoingMessages);
     } finally {
       setIsSending(false);
@@ -88,14 +95,19 @@ export function ChatPanel({
             {message.content}
           </div>
         ))}
-        {isSending && <p className="text-xs text-[#888888]">Assistant is thinking…</p>}
+        {isSending && (
+          <p className="flex items-center gap-2 text-xs text-[#888888]">
+            <Spinner className="h-3.5 w-3.5" />
+            {uiStrings.chatThinking}
+          </p>
+        )}
       </div>
 
       {error && (
         <div className="flex items-center justify-between rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           <span>{error}</span>
           <button type="button" onClick={retry} className="font-medium underline">
-            Retry
+            {uiStrings.retry}
           </button>
         </div>
       )}
@@ -109,7 +121,7 @@ export function ChatPanel({
       >
         <textarea
           ref={inputRef}
-          aria-label="Message"
+          aria-label={uiStrings.messageLabel}
           className="flex-1 resize-none rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
           rows={2}
           value={input}
@@ -127,7 +139,7 @@ export function ChatPanel({
           disabled={isSending || !input.trim()}
           className="rounded-md bg-[#753991] px-4 py-2 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Send
+          {uiStrings.send}
         </button>
       </form>
     </div>

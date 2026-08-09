@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import { fillDocumentClauses, type FilledClause } from "./fill-template";
 import type { DocumentTypeDetail } from "./document-schema";
 import type { FieldData } from "./field-data";
+import { DEFAULT_UI_STRINGS } from "./ui-strings";
 
 const SCHEMA: DocumentTypeDetail = {
   slug: "test-doc",
   name: "Test Document",
   description: "",
+  language: "en",
+  uiStrings: DEFAULT_UI_STRINGS,
+  translationDisclaimer: null,
   partyRoles: [],
   fields: [
     { key: "purpose", label: "Purpose", kind: "multiline", required: true },

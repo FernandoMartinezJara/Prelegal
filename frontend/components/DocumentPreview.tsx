@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { DocumentTypeDetail } from "@/lib/document-schema";
 import type { FieldData, FieldValue, PartyDetails } from "@/lib/field-data";
+import { partyRowLabels } from "@/lib/field-data";
 import { describeTerm, fillDocumentClauses } from "@/lib/fill-template";
 import { RichText } from "./RichText";
 import { EditableField } from "./EditableField";
@@ -45,8 +46,8 @@ export function DocumentPreview({ schema, data, onChange }: DocumentPreviewProps
                   <InlineTermEditor
                     legend={field.label}
                     name={field.key}
-                    fixedLabel="Expires"
-                    openEndedLabel="Continues until terminated"
+                    fixedLabel={schema.uiStrings.termFixedLabel}
+                    openEndedLabel={schema.uiStrings.termOpenEndedLabel}
                     value={data[field.key] as { type: "fixed" | "open-ended"; years: number }}
                     describe={describeTerm}
                     onCommit={fieldCommitter(field.key)}
@@ -79,9 +80,7 @@ export function DocumentPreview({ schema, data, onChange }: DocumentPreviewProps
 
       {schema.partyRoles.length > 0 && (
         <>
-          <p className="text-sm">
-            By signing below, each party agrees to enter into this agreement.
-          </p>
+          <p className="text-sm">{schema.uiStrings.signingNote}</p>
 
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -96,7 +95,9 @@ export function DocumentPreview({ schema, data, onChange }: DocumentPreviewProps
             </thead>
             <tbody>
               <tr>
-                <td className="border border-zinc-200 px-2 py-1 font-semibold">Signature</td>
+                <td className="border border-zinc-200 px-2 py-1 font-semibold">
+                  {schema.uiStrings.signatureLabel}
+                </td>
                 {schema.partyRoles.map((role, index) => {
                   const party = data[`party${index + 1}`] as PartyDetails;
                   return (
@@ -106,15 +107,7 @@ export function DocumentPreview({ schema, data, onChange }: DocumentPreviewProps
                   );
                 })}
               </tr>
-              {(
-                [
-                  ["Print Name", "name"],
-                  ["Title", "title"],
-                  ["Company", "company"],
-                  ["Notice Address", "notice_address"],
-                  ["Date", "date"],
-                ] as Array<[string, keyof PartyDetails]>
-              ).map(([label, subKey]) => (
+              {partyRowLabels(schema.uiStrings).map(([label, subKey]) => (
                 <tr key={subKey}>
                   <td className="border border-zinc-200 px-2 py-1 font-semibold">{label}</td>
                   {schema.partyRoles.map((role, index) => {
@@ -138,9 +131,7 @@ export function DocumentPreview({ schema, data, onChange }: DocumentPreviewProps
         </>
       )}
 
-      <p className="text-xs text-zinc-500">
-        Based on a Common Paper standard-terms template. Review with counsel before use.
-      </p>
+      <p className="text-xs text-zinc-500">{schema.uiStrings.previewFooter}</p>
     </article>
   );
 }

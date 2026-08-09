@@ -3,13 +3,16 @@
 import { useState } from "react";
 import type { DocumentTypeDetail } from "@/lib/document-schema";
 import type { FieldData } from "@/lib/field-data";
+import { DEFAULT_UI_STRINGS, type UiStrings } from "@/lib/ui-strings";
 
 export function DownloadPdfButton({
   schema,
   data,
+  uiStrings = DEFAULT_UI_STRINGS,
 }: {
   schema: DocumentTypeDetail;
   data: FieldData;
+  uiStrings?: UiStrings;
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -41,7 +44,7 @@ export function DownloadPdfButton({
       disabled={isGenerating}
       className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {isGenerating ? "Generating PDF…" : "Download PDF"}
+      {isGenerating ? uiStrings.generatingPdf : uiStrings.downloadPdf}
     </button>
   );
 }

@@ -3,6 +3,7 @@ import type { ReactElement, ReactNode } from "react";
 import { DocumentPdfDocument } from "./document-pdf";
 import type { DocumentTypeDetail } from "./document-schema";
 import type { FieldData, PartyDetails } from "./field-data";
+import { DEFAULT_UI_STRINGS } from "./ui-strings";
 
 function collectText(node: ReactNode): string[] {
   if (node == null || typeof node === "boolean") return [];
@@ -25,6 +26,9 @@ const SCHEMA: DocumentTypeDetail = {
   slug: "mutual-nda",
   name: "Mutual Non-Disclosure Agreement",
   description: "",
+  language: "en",
+  uiStrings: DEFAULT_UI_STRINGS,
+  translationDisclaimer: null,
   partyRoles: ["Party 1", "Party 2"],
   fields: [{ key: "purpose", label: "Purpose", kind: "multiline", required: true }],
   clauses: [{ number: "1", text: "**Intro**. For the {{purpose}}." }],

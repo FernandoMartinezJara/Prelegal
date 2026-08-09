@@ -3,11 +3,15 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DownloadPdfButton } from "./DownloadPdfButton";
 import type { DocumentTypeDetail } from "@/lib/document-schema";
+import { DEFAULT_UI_STRINGS } from "@/lib/ui-strings";
 
 const SCHEMA: DocumentTypeDetail = {
   slug: "mutual-nda",
   name: "Mutual Non-Disclosure Agreement",
   description: "",
+  language: "en",
+  uiStrings: DEFAULT_UI_STRINGS,
+  translationDisclaimer: null,
   partyRoles: ["Party 1", "Party 2"],
   fields: [],
   clauses: [],

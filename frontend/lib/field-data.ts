@@ -1,4 +1,5 @@
 import type { DocumentTypeDetail } from "./document-schema";
+import type { UiStrings } from "./ui-strings";
 
 export type TermChoice = "fixed" | "open-ended";
 
@@ -25,6 +26,18 @@ export type FieldData = Record<string, FieldValue | PartyDetails>;
 
 export function createDefaultPartyDetails(): PartyDetails {
   return { name: "", title: "", company: "", notice_address: "", date: "" };
+}
+
+// Shared by the on-screen preview and the PDF renderer so their party-detail
+// rows (and translated labels) can never drift out of sync.
+export function partyRowLabels(uiStrings: UiStrings): Array<[string, keyof PartyDetails]> {
+  return [
+    [uiStrings.printNameLabel, "name"],
+    [uiStrings.titleLabel, "title"],
+    [uiStrings.companyLabel, "company"],
+    [uiStrings.noticeAddressLabel, "notice_address"],
+    [uiStrings.dateLabel, "date"],
+  ];
 }
 
 export function createDefaultFieldData(schema: DocumentTypeDetail): FieldData {

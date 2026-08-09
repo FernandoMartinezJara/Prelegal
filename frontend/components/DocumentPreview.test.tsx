@@ -4,11 +4,15 @@ import userEvent from "@testing-library/user-event";
 import { DocumentPreview } from "./DocumentPreview";
 import type { DocumentTypeDetail } from "@/lib/document-schema";
 import { createDefaultFieldData } from "@/lib/field-data";
+import { DEFAULT_UI_STRINGS } from "@/lib/ui-strings";
 
 const SCHEMA: DocumentTypeDetail = {
   slug: "mutual-nda",
   name: "Mutual Non-Disclosure Agreement",
   description: "",
+  language: "en",
+  uiStrings: DEFAULT_UI_STRINGS,
+  translationDisclaimer: null,
   partyRoles: ["Party 1", "Party 2"],
   fields: [
     { key: "purpose", label: "Purpose", kind: "multiline", required: true },
@@ -26,6 +30,9 @@ const ADDENDUM_SCHEMA: DocumentTypeDetail = {
   slug: "ai-addendum",
   name: "AI Addendum",
   description: "",
+  language: "en",
+  uiStrings: DEFAULT_UI_STRINGS,
+  translationDisclaimer: null,
   partyRoles: [],
   fields: [{ key: "host_agreement_reference", label: "Host Agreement", kind: "multiline", required: true }],
   clauses: [{ number: "1", text: "This addendum supplements the host agreement." }],

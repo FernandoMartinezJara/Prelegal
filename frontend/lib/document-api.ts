@@ -17,10 +17,13 @@ export async function fetchDocumentCatalog(): Promise<DocumentTypeSummary[]> {
   return (await response.json()) as DocumentTypeSummary[];
 }
 
-export async function fetchDocumentSchema(slug: string): Promise<DocumentTypeDetail> {
+export async function fetchDocumentSchema(
+  slug: string,
+  lang: string = "en"
+): Promise<DocumentTypeDetail> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/documents/${slug}`);
+    response = await fetch(`${API_BASE_URL}/api/documents/${slug}?lang=${encodeURIComponent(lang)}`);
   } catch {
     throw new DocumentApiError("Could not reach the server. Check your connection and try again.");
   }

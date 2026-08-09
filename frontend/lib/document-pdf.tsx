@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { DocumentTypeDetail } from "./document-schema";
 import type { FieldData, PartyDetails, TermValue } from "./field-data";
+import { partyRowLabels } from "./field-data";
 import { describeTerm, fillDocumentClauses, type RichSegment } from "./fill-template";
 
 const styles = StyleSheet.create({
@@ -16,14 +17,6 @@ const styles = StyleSheet.create({
   clauseText: { flex: 1 },
   footer: { marginTop: 16, fontSize: 8, color: "#71717a" },
 });
-
-const PARTY_ROWS: Array<[string, keyof PartyDetails]> = [
-  ["Print Name", "name"],
-  ["Title", "title"],
-  ["Company", "company"],
-  ["Notice Address", "notice_address"],
-  ["Date", "date"],
-];
 
 function fallback(value: string) {
   return value.trim() ? value : "—";
@@ -59,11 +52,17 @@ export function DocumentPdfDocument({
   data: FieldData;
 }) {
   const clauses = fillDocumentClauses(schema, data);
+  const partyRows = partyRowLabels(schema.uiStrings);
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
         <Text style={styles.title}>{schema.name}</Text>
+        {schema.translationDisclaimer && (
+          <Text style={{ ...styles.footer, marginBottom: 12, marginTop: 0 }}>
+            {schema.translationDisclaimer}
+          </Text>
+        )}
 
         <View style={styles.table}>
           {schema.fields.map((field) => (
@@ -83,9 +82,7 @@ export function DocumentPdfDocument({
 
         {schema.partyRoles.length > 0 && (
           <>
-            <Text style={{ marginTop: 8, marginBottom: 8 }}>
-              By signing below, each party agrees to enter into this agreement.
-            </Text>
+            <Text style={{ marginTop: 8, marginBottom: 8 }}>{schema.uiStrings.signingNote}</Text>
 
             <View style={styles.table}>
               <View style={styles.row}>
@@ -97,14 +94,14 @@ export function DocumentPdfDocument({
                 ))}
               </View>
               <View style={styles.row}>
-                <Text style={styles.cellLabel}>Signature</Text>
+                <Text style={styles.cellLabel}>{schema.uiStrings.signatureLabel}</Text>
                 {schema.partyRoles.map((role, index) => (
                   <Text style={styles.cell} key={role}>
                     {fallback((data[`party${index + 1}`] as PartyDetails).name)}
                   </Text>
                 ))}
               </View>
-              {PARTY_ROWS.map(([label, key]) => (
+              {partyRows.map(([label, key]) => (
                 <View style={styles.row} key={key}>
                   <Text style={styles.cellLabel}>{label}</Text>
                   {schema.partyRoles.map((role, index) => (
@@ -118,9 +115,7 @@ export function DocumentPdfDocument({
           </>
         )}
 
-        <Text style={styles.footer}>
-          Based on a Common Paper standard-terms template. Review with counsel before use.
-        </Text>
+        <Text style={styles.footer}>{schema.uiStrings.previewFooter}</Text>
       </Page>
     </Document>
   );
