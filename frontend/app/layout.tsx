@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mutual NDA Creator",
-  description: "Chat with an AI assistant to draft and download a Common Paper Mutual NDA.",
+  title: "Prelegal Document Creator",
+  description: "Chat with an AI assistant to draft and download a Common Paper legal agreement.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

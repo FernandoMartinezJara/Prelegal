@@ -1,0 +1,62 @@
+from app.document_types.spec import LITERAL, DocumentTypeSpec, FieldSpec
+
+SPEC = DocumentTypeSpec(
+    slug="partnership-agreement",
+    name="Partnership Agreement",
+    description=(
+        "An agreement for two companies collaborating on a business partnership, covering "
+        "mutual obligations, fees, trademark licensing, confidentiality, and liability."
+    ),
+    filename="Partnership-Agreement.md",
+    party_roles=("Company", "Partner"),
+    fields=(
+        FieldSpec("effective_date", "Effective Date", "date"),
+        FieldSpec("end_date", "End Date", "date", required=False),
+        FieldSpec("governing_law", "Governing Law", "text"),
+        FieldSpec("chosen_courts", "Chosen Courts", "text"),
+        FieldSpec("territory", "Territory", "text", required=False),
+        FieldSpec("general_cap_amount", "General Cap Amount", "text", required=False),
+        FieldSpec("increased_cap_amount", "Increased Cap Amount", "text", required=False),
+        FieldSpec("increased_claims", "Increased Claims", "multiline", required=False),
+        FieldSpec("unlimited_claims", "Unlimited Claims", "multiline", required=False),
+        FieldSpec("additional_warranties", "Additional Warranties", "multiline", required=False),
+        FieldSpec("brand_guidelines", "Brand Guidelines", "multiline", required=False),
+        FieldSpec("dpa_reference", "DPA Reference", "text", required=False),
+        FieldSpec("company_covered_claims", "Company Covered Claims", "multiline", required=False),
+        FieldSpec("partner_covered_claims", "Partner Covered Claims", "multiline", required=False),
+        FieldSpec(
+            "obligations_summary",
+            "Each Party's Obligations",
+            "multiline",
+            required=False,
+        ),
+        FieldSpec(
+            "payment_terms_summary",
+            "Payment Process and Schedule",
+            "multiline",
+            required=False,
+        ),
+    ),
+    clause_mapping={
+        "Company": LITERAL,
+        "Partner": LITERAL,
+        "End Date": "end_date",
+        "Obligations": LITERAL,
+        "Payment Process": LITERAL,
+        "Payment Schedule": LITERAL,
+        "Territory": "territory",
+        "Additional Warranties": "additional_warranties",
+        "Brand Guidelines": "brand_guidelines",
+        "Chosen Courts": "chosen_courts",
+        "Company Covered Claim": "company_covered_claims",
+        "DPA": "dpa_reference",
+        "Effective Date": "effective_date",
+        "General Cap Amount": "general_cap_amount",
+        "Governing Law": "governing_law",
+        "Increased Cap Amount": "increased_cap_amount",
+        "Increased Claims": "increased_claims",
+        "Partner Covered Claim": "partner_covered_claims",
+        "Partner Covered Claims": "partner_covered_claims",
+        "Unlimited Claims": "unlimited_claims",
+    },
+)

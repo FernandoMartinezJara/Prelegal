@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { InlineTermEditor } from "./InlineTermEditor";
-import { describeMndaTerm } from "@/lib/fill-template";
+import { describeTerm } from "@/lib/fill-template";
 
 const baseProps = {
   legend: "MNDA term",
   name: "mndaTerm",
   fixedLabel: "Expires",
   openEndedLabel: "Continues until terminated",
-  describe: describeMndaTerm,
+  describe: describeTerm,
 };
 
 describe("InlineTermEditor", () => {
@@ -18,7 +18,7 @@ describe("InlineTermEditor", () => {
       <InlineTermEditor {...baseProps} value={{ type: "fixed", years: 2 }} onCommit={vi.fn()} />
     );
     expect(screen.getByRole("button", { name: "Edit MNDA term" })).toHaveTextContent(
-      describeMndaTerm("fixed", 2)
+      describeTerm("fixed", 2)
     );
   });
 

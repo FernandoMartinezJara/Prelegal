@@ -1,27 +1,40 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from "react";
-import type { NdaFormData } from "@/lib/nda-data";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import type { FieldData } from "@/lib/field-data";
 import { sendChatMessage, type ChatMessage } from "@/lib/chat-api";
-import { mergeAssistantUpdate } from "@/lib/merge-nda-data";
+import { mergeAssistantUpdate } from "@/lib/merge-field-data";
 
 const GREETING: ChatMessage = {
   role: "assistant",
-  content:
-    "Hi! Let's put together your Mutual NDA. What's the purpose of the two parties sharing confidential information?",
+  content: "Hi! What kind of legal document are you looking to put together today?",
 };
 
 interface ChatPanelProps {
-  ndaData: NdaFormData;
-  onNdaDataChange: Dispatch<SetStateAction<NdaFormData>>;
+  documentType: string | null;
+  fieldData: FieldData;
+  onDocumentTypeChange: (slug: string | null, fieldData: FieldData) => void;
+  onFieldDataChange: Dispatch<SetStateAction<FieldData>>;
 }
 
-export function ChatPanel({ ndaData, onNdaDataChange }: ChatPanelProps) {
+export function ChatPanel({
+  documentType,
+  fieldData,
+  onDocumentTypeChange,
+  onFieldDataChange,
+}: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingRetry, setPendingRetry] = useState<ChatMessage[] | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Restore focus to the message box after every turn (success or failure)
+  // so the user can keep typing without having to click back into it.
+  useEffect(() => {
+    if (!isSending) inputRef.current?.focus();
+  }, [isSending]);
 
   async function handleSubmit(pendingMessages?: ChatMessage[]) {
     const outgoingMessages = pendingMessages ?? [...messages, { role: "user", content: input }];
@@ -32,12 +45,17 @@ export function ChatPanel({ ndaData, onNdaDataChange }: ChatPanelProps) {
     }
     setIsSending(true);
     setError(null);
-    const sentNdaData = ndaData;
+    const sentDocumentType = documentType;
+    const sentFieldData = fieldData;
 
     try {
-      const result = await sendChatMessage(outgoingMessages, sentNdaData);
+      const result = await sendChatMessage(outgoingMessages, sentDocumentType, sentFieldData);
       setMessages((prev) => [...prev, { role: "assistant", content: result.reply }]);
-      onNdaDataChange((current) => mergeAssistantUpdate(current, sentNdaData, result.ndaData));
+      if (result.documentType !== sentDocumentType) {
+        onDocumentTypeChange(result.documentType, result.fieldData);
+      } else {
+        onFieldDataChange((current) => mergeAssistantUpdate(current, sentFieldData, result.fieldData));
+      }
     } catch {
       setError("Something went wrong reaching the assistant. Please try again.");
       setPendingRetry(outgoingMessages);
@@ -90,11 +108,12 @@ export function ChatPanel({ ndaData, onNdaDataChange }: ChatPanelProps) {
         }}
       >
         <textarea
+          ref={inputRef}
           aria-label="Message"
           className="flex-1 resize-none rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
           rows={2}
           value={input}
-          disabled={isSending}
+          readOnly={isSending}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {

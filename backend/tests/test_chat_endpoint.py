@@ -1,34 +1,33 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from app.models.chat import ChatTurnResult
-from app.models.nda import NdaFormData
-from app.services.nda_chat import LlmCallError
+from app.services.chat_service import LlmCallError
 
 
-def fake_completion_response(result: ChatTurnResult) -> MagicMock:
-    response = MagicMock()
-    response.choices[0].message.content = result.model_dump_json(by_alias=True)
-    return response
-
-
-def test_chat_endpoint_returns_reply_and_camel_case_nda_data(client):
-    expected = ChatTurnResult(reply="What's the purpose?", nda_data=NdaFormData())
-    body = {"messages": [{"role": "user", "content": "Let's start"}], "ndaData": {}}
+def test_chat_endpoint_returns_reply_and_snake_case_field_data(client):
+    body = {
+        "messages": [{"role": "user", "content": "Let's start"}],
+        "documentType": "mutual-nda",
+        "fieldData": {},
+    }
 
     with patch(
-        "app.services.nda_chat.completion", return_value=fake_completion_response(expected)
+        "app.routers.chat.generate_chat_turn",
+        return_value=ChatTurnResult(
+            reply="What's the purpose?", document_type="mutual-nda", field_data={"purpose": ""}
+        ),
     ):
         response = client.post("/api/chat", json=body)
 
     assert response.status_code == 200
     payload = response.json()
     assert payload["reply"] == "What's the purpose?"
-    assert "ndaData" in payload
-    assert "mndaTerm" in payload["ndaData"]
+    assert payload["documentType"] == "mutual-nda"
+    assert "purpose" in payload["fieldData"]
 
 
 def test_chat_endpoint_returns_502_on_llm_failure(client):
-    body = {"messages": [{"role": "user", "content": "Let's start"}], "ndaData": {}}
+    body = {"messages": [{"role": "user", "content": "Let's start"}], "documentType": None, "fieldData": {}}
 
     with patch("app.routers.chat.generate_chat_turn", side_effect=LlmCallError("boom")):
         response = client.post("/api/chat", json=body)
@@ -37,14 +36,29 @@ def test_chat_endpoint_returns_502_on_llm_failure(client):
 
 
 def test_chat_endpoint_rejects_empty_messages(client):
-    response = client.post("/api/chat", json={"messages": [], "ndaData": {}})
+    response = client.post("/api/chat", json={"messages": [], "documentType": None, "fieldData": {}})
 
     assert response.status_code == 422
 
 
 def test_chat_endpoint_rejects_invalid_role(client):
-    body = {"messages": [{"role": "system", "content": "hi"}], "ndaData": {}}
+    body = {"messages": [{"role": "system", "content": "hi"}], "documentType": None, "fieldData": {}}
 
     response = client.post("/api/chat", json=body)
 
     assert response.status_code == 422
+
+
+def test_chat_endpoint_accepts_missing_document_type_and_field_data(client):
+    body = {"messages": [{"role": "user", "content": "hi"}]}
+
+    with patch(
+        "app.routers.chat.generate_chat_turn",
+        return_value=ChatTurnResult(
+            reply="What kind of document do you need?", document_type=None, field_data={}
+        ),
+    ) as mock_generate:
+        response = client.post("/api/chat", json=body)
+
+    assert response.status_code == 200
+    mock_generate.assert_called_once()

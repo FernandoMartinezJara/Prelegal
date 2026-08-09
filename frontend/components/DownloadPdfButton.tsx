@@ -1,27 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import type { NdaFormData } from "@/lib/nda-data";
+import type { DocumentTypeDetail } from "@/lib/document-schema";
+import type { FieldData } from "@/lib/field-data";
 
-export function DownloadPdfButton({ data }: { data: NdaFormData }) {
+export function DownloadPdfButton({
+  schema,
+  data,
+}: {
+  schema: DocumentTypeDetail;
+  data: FieldData;
+}) {
   const [isGenerating, setIsGenerating] = useState(false);
 
   async function handleDownload() {
     setIsGenerating(true);
     try {
-      const [{ pdf }, { NdaPdfDocument }] = await Promise.all([
+      const [{ pdf }, { DocumentPdfDocument }] = await Promise.all([
         import("@react-pdf/renderer"),
-        import("@/lib/nda-pdf"),
+        import("@/lib/document-pdf"),
       ]);
-      const blob = await pdf(<NdaPdfDocument data={data} />).toBlob();
+      const blob = await pdf(<DocumentPdfDocument schema={schema} data={data} />).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "mutual-nda.pdf";
+      link.download = `${schema.slug}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Failed to generate NDA PDF:", error);
+      console.error("Failed to generate document PDF:", error);
     } finally {
       setIsGenerating(false);
     }

@@ -9,6 +9,8 @@ FROM python:3.12-slim
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 COPY backend/ ./
+COPY templates/ ./templates/
+COPY catalog.json ./catalog.json
 RUN uv sync --locked
 COPY --from=frontend-builder /app/frontend/out ./static
 
