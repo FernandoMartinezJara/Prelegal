@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.models.nda import CamelModel, NdaFormData
+from app.models.common import CamelModel
 
 
 class ChatMessage(BaseModel):
@@ -12,9 +12,11 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(CamelModel):
     messages: list[ChatMessage] = Field(min_length=1)
-    nda_data: NdaFormData = Field(default_factory=NdaFormData)
+    document_type: str | None = None
+    field_data: dict = Field(default_factory=dict)
 
 
 class ChatTurnResult(CamelModel):
     reply: str
-    nda_data: NdaFormData
+    document_type: str | None = None
+    field_data: dict = Field(default_factory=dict)

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import type { TermChoice } from "@/lib/nda-data";
+import type { TermChoice } from "@/lib/field-data";
 
 interface TermValue {
   type: TermChoice;

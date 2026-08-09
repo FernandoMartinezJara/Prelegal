@@ -8,7 +8,7 @@ The available documents are covered in the catalog.json file in the project root
 
 @catalog.json
 
-The current implementation is a Mutual NDA prototype, drafted via an AI chat interface, on a Docker/FastAPI/SQLite foundation (see Implementation Status below); the other 10 document types and user authentication/persistence are planned but not yet built.
+The current implementation supports all 11 document types in catalog.json, drafted via an AI chat interface that infers the document type from the conversation, on a Docker/FastAPI/SQLite foundation (see Implementation Status below); user authentication/persistence is planned but not yet built.
 
 ## Development process
 
@@ -84,13 +84,64 @@ Backend available at http://localhost:8000
   `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` in `frontend/.env.local`; the Docker/production
   path is same-origin and needs nothing (CORS is scoped to `localhost:3000` only)
 - No product/document-type scope change beyond the interaction model - still just the Mutual NDA
+- Superseded by PL-6: `app/models/nda.py`, `app/services/nda_chat.py`, `frontend/lib/nda-data.ts`,
+  `nda-template.ts`, `nda-pdf.tsx`, and `NdaPreview.tsx` no longer exist - the Mutual NDA is now
+  one of 11 document types handled by the generic pipeline described below
 
-### Not yet started (PL-6, PL-7)
-Multi-document-type support and full user authentication/persistence described in earlier drafts
-of this file have **not** been built yet. They remain planned follow-on work, not completed
-features.
+### Completed (PL-6)
+- Expanded from the Mutual NDA only to all 11 document types in catalog.json. Document-type
+  selection is chat-driven, not a picker: the user describes what they want in freeform chat, and
+  the backend classifies it against the catalog (or explains what's unsupported and suggests the
+  closest match) before extracting that type's fields - see `backend/app/services/chat_service.py`
+- Each document type is a small Python module under `backend/app/document_types/` (`FieldSpec`s +
+  a `party_roles` tuple + a `clause_mapping` table); `backend/app/document_types/registry.py` is
+  the single source of truth, validated at test time against `catalog.json` for 1:1 parity
+- Clause text is **derived from the real `templates/*.md` files**, not hand-transcribed: a
+  hand-authored `clause_mapping` per document type (span label -> field key, or `"literal"` for
+  party-role mentions like "Customer"/"Provider" that aren't real fields) drives
+  `backend/app/document_types/clause_builder.py`, which parses each template's numbered clauses
+  and substitutes `{{field_key}}` tokens. `backend/scripts/generate_clause_data.py` regenerates the
+  checked-in `backend/app/document_types/generated/<slug>.json` files - re-run it after editing
+  any `clause_mapping`, and review the diff (this is the legal-review checkpoint for clause text).
+  `backend/tests/test_document_registry.py` fails CI if the checked-in JSON goes stale, or if any
+  template's span label isn't classified in its document type's `clause_mapping`
+- Every document type's fields are modeled **flat** (scalars, dates, and `{type, years}` "term"
+  fields) - naturally repeatable/nested structures in the real templates (CSA's multiple Order
+  Forms, PSA's multiple Statements of Work, DPA's subprocessor list) are flattened into a single
+  free-text summary field rather than modeled as real repeatable child records. Addenda with no
+  parties of their own (SLA, DPA, AI Addendum) get a `host_agreement_reference` free-text field
+  instead of a real link to another generated document, since there's no persistence/document
+  linking yet
+- New endpoints `GET /api/documents` (catalog) and `GET /api/documents/{slug}` (one type's field
+  schema + derived clauses) make the backend the single source of truth; the frontend has no
+  hardcoded per-document TypeScript type anymore - `frontend/components/DocumentPreview.tsx` and
+  `frontend/lib/document-pdf.tsx` render whatever schema comes back, and
+  `frontend/lib/merge-field-data.ts` merges any document type's field shape generically (a
+  structural walk, not named fields) - this is what let PL-5's single-document merge logic scale
+  to 11 types with zero per-type code
+- Field data on the wire (`ChatRequest.fieldData` / `ChatTurnResult.fieldData`) is a plain
+  snake_case-keyed `dict`, matching `FieldSpec.key` and the `{{token}}` placeholders in generated
+  clause text exactly - deliberately *not* camelCased like PL-5's `NdaFormData`, so no
+  case-conversion is needed anywhere between a field's schema key, its clause token, and its wire
+  value. Only the outer envelope (`reply`, `documentType`, `fieldData` themselves) stays camelCase
+- Two UX fixes: (a) the chat's message box now regains focus after every turn (success or retry)
+  via a ref + `useEffect`, and the textarea uses `readOnly` instead of `disabled` while a request
+  is in flight so it never loses focus in the first place; (b) the assistant is now guaranteed to
+  ask a follow-up question whenever required fields are still missing, via **both** stronger
+  prompt wording and a deterministic backend fallback (`backend/app/services/followup.py` checks
+  which required fields are empty and appends a question if the model's reply doesn't already end
+  in one) - this can't fail silently the way prompt-only guidance could
+- The Dockerfile now copies `templates/` and `catalog.json` into the image (`backend/app/config.py`
+  resolves their path in both local dev and the flattened Docker `/app` layout) - previously
+  neither was copied in, so `/api/documents*` would have 500'd in production
+
+### Not yet started (PL-7)
+Full user authentication/persistence described in earlier drafts of this file has **not** been
+built yet. It remains planned follow-on work, not a completed feature.
 
 ### Current API Endpoints
 - `GET /api/health` - Health check (all other routes serve the static frontend)
-- `POST /api/chat` - One turn of the Mutual NDA chat; body `{ messages, ndaData }`, returns
-  `{ reply, ndaData }` (the full updated field snapshot)
+- `GET /api/documents` - Catalog of all 11 document types (`slug`, `name`, `description`)
+- `GET /api/documents/{slug}` - One document type's field schema, party roles, and derived clauses
+- `POST /api/chat` - One turn of the chat; body `{ messages, documentType, fieldData }` (`documentType`
+  may be `null` before a type is resolved), returns `{ reply, documentType, fieldData }`

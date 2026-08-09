@@ -2,7 +2,16 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DownloadPdfButton } from "./DownloadPdfButton";
-import { createDefaultNdaFormData } from "@/lib/nda-data";
+import type { DocumentTypeDetail } from "@/lib/document-schema";
+
+const SCHEMA: DocumentTypeDetail = {
+  slug: "mutual-nda",
+  name: "Mutual Non-Disclosure Agreement",
+  description: "",
+  partyRoles: ["Party 1", "Party 2"],
+  fields: [],
+  clauses: [],
+};
 
 let resolveToBlob: (blob: Blob) => void;
 const toBlob = vi.fn(
@@ -14,7 +23,7 @@ const toBlob = vi.fn(
 const pdf = vi.fn(() => ({ toBlob }));
 
 vi.mock("@react-pdf/renderer", () => ({ pdf: (...args: unknown[]) => pdf(...(args as [])) }));
-vi.mock("@/lib/nda-pdf", () => ({ NdaPdfDocument: () => null }));
+vi.mock("@/lib/document-pdf", () => ({ DocumentPdfDocument: () => null }));
 
 describe("DownloadPdfButton", () => {
   beforeEach(() => {
@@ -30,7 +39,7 @@ describe("DownloadPdfButton", () => {
   });
 
   it("shows a disabled 'Generating PDF…' state while the PDF is being built, then triggers a download", async () => {
-    render(<DownloadPdfButton data={createDefaultNdaFormData()} />);
+    render(<DownloadPdfButton schema={SCHEMA} data={{}} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Download PDF" }));
 
@@ -51,7 +60,7 @@ describe("DownloadPdfButton", () => {
   it("re-enables the button and logs the error if PDF generation fails", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     toBlob.mockImplementationOnce(() => Promise.reject(new Error("boom")));
-    render(<DownloadPdfButton data={createDefaultNdaFormData()} />);
+    render(<DownloadPdfButton schema={SCHEMA} data={{}} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Download PDF" }));
 
@@ -59,7 +68,7 @@ describe("DownloadPdfButton", () => {
       expect(screen.getByRole("button", { name: "Download PDF" })).toBeEnabled()
     );
     expect(consoleError).toHaveBeenCalledWith(
-      "Failed to generate NDA PDF:",
+      "Failed to generate document PDF:",
       expect.any(Error)
     );
     expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();

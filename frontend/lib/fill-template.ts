@@ -1,5 +1,5 @@
-import { NDA_CLAUSES } from "./nda-template";
-import type { NdaFormData, TermChoice } from "./nda-data";
+import type { DocumentTypeDetail } from "./document-schema";
+import type { FieldData, TermChoice, TermValue } from "./field-data";
 
 export interface RichSegment {
   text: string;
@@ -7,20 +7,18 @@ export interface RichSegment {
 }
 
 export interface FilledClause {
-  number: number;
+  number: string;
   segments: RichSegment[];
 }
 
-export function describeMndaTerm(type: TermChoice, years: number): string {
-  return type === "fixed"
-    ? `${years} year(s) from the Effective Date`
-    : `the date this MNDA is terminated in accordance with its terms`;
+export function describeTerm(type: TermChoice, years: number): string {
+  if (type !== "fixed") return "Continues until terminated";
+  // 0 is the "not yet specified" sentinel for a fixed term.
+  return years > 0 ? `${years} year(s) from the Effective Date` : "[Term not yet specified]";
 }
 
-export function describeConfidentialityTerm(type: TermChoice, years: number): string {
-  return type === "fixed"
-    ? `${years} year(s) from the Effective Date, but in the case of trade secrets until the Confidential Information is no longer considered a trade secret under applicable law`
-    : `in perpetuity`;
+function isTermValue(value: unknown): value is TermValue {
+  return typeof value === "object" && value !== null && "type" in value && "years" in value;
 }
 
 // Free-text form fields are substituted into a template that also uses `**`
@@ -30,18 +28,17 @@ function sanitizeFreeText(value: string): string {
   return value.replace(/\*/g, "");
 }
 
-function buildTokenValues(data: NdaFormData): Record<string, string> {
-  return {
-    purpose: sanitizeFreeText(data.purpose) || "[Purpose not provided]",
-    effectiveDate: data.effectiveDate || "[Effective Date not provided]",
-    mndaTerm: describeMndaTerm(data.mndaTerm.type, data.mndaTerm.years),
-    termOfConfidentiality: describeConfidentialityTerm(
-      data.confidentialityTerm.type,
-      data.confidentialityTerm.years
-    ),
-    governingLaw: sanitizeFreeText(data.governingLaw) || "[Governing Law not provided]",
-    jurisdiction: sanitizeFreeText(data.jurisdiction) || "[Jurisdiction not provided]",
-  };
+function buildTokenValues(schema: DocumentTypeDetail, data: FieldData): Record<string, string> {
+  const tokens: Record<string, string> = {};
+  for (const field of schema.fields) {
+    const value = data[field.key];
+    if (field.kind === "term" && isTermValue(value)) {
+      tokens[field.key] = describeTerm(value.type, value.years);
+    } else if (typeof value === "string") {
+      tokens[field.key] = sanitizeFreeText(value) || `[${field.label} not provided]`;
+    }
+  }
+  return tokens;
 }
 
 /** Splits `**bold**` markers out of a template string into rich segments and
@@ -60,9 +57,9 @@ function fillAndSegment(template: string, tokenValues: Record<string, string>): 
     });
 }
 
-export function fillNdaClauses(data: NdaFormData): FilledClause[] {
-  const tokenValues = buildTokenValues(data);
-  return NDA_CLAUSES.map((clause) => ({
+export function fillDocumentClauses(schema: DocumentTypeDetail, data: FieldData): FilledClause[] {
+  const tokenValues = buildTokenValues(schema, data);
+  return schema.clauses.map((clause) => ({
     number: clause.number,
     segments: fillAndSegment(clause.text, tokenValues),
   }));
